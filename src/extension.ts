@@ -9,7 +9,6 @@ export function activate(context: vscode.ExtensionContext) {
   const colors: vscode.TextEditorDecorationType[] = config["colors"].map(
     (c: string) => vscode.window.createTextEditorDecorationType({ color: c })
   );
-  let parrots = {};
   const frameSize: vscode.Range = new vscode.Range(
     new vscode.Position(0, 0),
     new vscode.Position(
@@ -30,6 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
     const editor = await docInit();
     let index = 0;
     let colorIndex = 0;
+    let unsetDecoration = () => {};
     const t = setInterval(() => {
       if (!editor || editor.document.isClosed) {
         clearInterval(t);
@@ -45,12 +45,17 @@ export function activate(context: vscode.ExtensionContext) {
         })
         .then(() => {
           try {
-			log(`${colorIndex}`);
-            editor.setDecorations(colors[colorIndex], [frameSize]);
+            editor.setDecorations(colors[colorIndex], editor.visibleRanges);
+            unsetDecoration = () => {
+              editor.setDecorations(colors[colorIndex], []);
+              log("unset");
+            };
+            unsetDecoration();
+            //editor.setDecorations(colors[2], [frameSize]);
             colorIndex = (colorIndex + 1) % colors.length;
+            log(`${colorIndex}`);
           } catch (err) {
             clearInterval(t);
-            log("color error");
           }
         })
         .then(undefined, err => {
