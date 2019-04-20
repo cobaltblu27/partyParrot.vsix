@@ -29,31 +29,30 @@ export function activate(context: vscode.ExtensionContext) {
     const editor = await docInit();
     let index = 0;
     let colorIndex = 0;
-    let unsetDecoration = () => {};
+    let unsetDecoration = (editor: vscode.TextEditor) => {
+      colors.forEach(c => editor.setDecorations(c, []));
+    };
     const t = setInterval(() => {
       if (!editor || editor.document.isClosed) {
         clearInterval(t);
         return;
       }
       editor
-        .edit(editorEdit => {
-          editorEdit.replace(frameSize, frames[index]);
-          editor.selection = new vscode.Selection(
-            new vscode.Position(0, 0),
-            new vscode.Position(0, 0)
-          );
-        })
+        .edit(
+          editorEdit => {
+            editorEdit.replace(frameSize, frames[index]);
+            editor.selection = new vscode.Selection(
+              new vscode.Position(0, 0),
+              new vscode.Position(0, 0)
+            );
+          },
+          { undoStopAfter: false, undoStopBefore: false }
+        )
         .then(() => {
           try {
+            unsetDecoration(editor);
             editor.setDecorations(colors[colorIndex], editor.visibleRanges);
-            unsetDecoration = () => {
-              editor.setDecorations(colors[colorIndex], []);
-              log("unset");
-            };
-            unsetDecoration();
-            //editor.setDecorations(colors[2], [frameSize]);
             colorIndex = (colorIndex + 1) % colors.length;
-            log(`${colorIndex}`);
           } catch (err) {
             clearInterval(t);
           }
@@ -62,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
           clearInterval(t);
         });
       index = (index + 1) % frames.length;
-    }, 1000);
+    }, frameLoadTime);
   };
 
   context.subscriptions.push(
